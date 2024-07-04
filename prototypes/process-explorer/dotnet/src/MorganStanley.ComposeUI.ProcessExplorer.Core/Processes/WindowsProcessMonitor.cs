@@ -56,7 +56,10 @@ internal class WindowsProcessInfoMonitor : ProcessInfoMonitor
 
         try
         {
-            if (Process.GetProcessById(processId) == null) return null;
+            if (Process.GetProcessById(processId) == null)
+            {
+                return null;
+            }
 
             var managementObjectSearcher = _managementPPidObjectSearchers.GetOrAdd(processId, _ => new ManagementObjectSearcher(
                 $"Select ParentProcessId From Win32_Process Where ProcessID={processId}"));
@@ -67,7 +70,10 @@ internal class WindowsProcessInfoMonitor : ProcessInfoMonitor
 
             mo.CopyTo(deviceArray, 0);
 
-            if (deviceArray.Length <= 0) return null;
+            if (deviceArray.Length <= 0)
+            {
+                return null;
+            }
 
             parentProcessId = Convert.ToInt32(deviceArray.First()["ParentProcessId"]);
         }

@@ -10,30 +10,31 @@
 // or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using MorganStanley.ComposeUI.ProcessExplorer.Abstractions;
 using MorganStanley.ComposeUI.ProcessExplorer.Abstractions.Subsystems;
 using MorganStanley.ComposeUI.ProcessExplorer.GrpcWebServer.Logging;
-using MorganStanley.ComposeUI.ProcessExplorer.GrpcWebServer.Server.Abstractions;
 
-namespace MorganStanley.ComposeUI.ProcessExplorer.GrpcWebServer.Sever.Abstractions;
+namespace MorganStanley.ComposeUI.ProcessExplorer.GrpcWebServer.Server.Abstractions;
 
-internal abstract class ProcessExplorerServer
+internal class ProcessExplorerServer : IHostedService
 {
     private readonly ILogger _logger;
-    public int Port { get; }
-    public string Host { get; }
+    private readonly CancellationTokenSource _stopTokenSource = new();
+    private readonly TaskCompletionSource _startTaskSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _stopTaskSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly IProcessInfoAggregator _processInfoAggregator;
+    private readonly ProcessExplorerServerOptions _options;
 
     public ProcessExplorerServer(
-        int port,
-        string host,
+        IProcessInfoAggregator processInfoAggregator,
+        IOptions<ProcessExplorerServerOptions> options,
         ILogger? logger = null)
     {
+        _processInfoAggregator = processInfoAggregator;
+        _options = options.Value;
         _logger = logger ?? NullLogger.Instance;
-        Host = host;
-        Port = port;
     }
 
     public async void SetupProcessExplorer(
@@ -48,7 +49,7 @@ internal abstract class ProcessExplorerServer
                   .Select(process => process.ProcessInfo.ProcessId)
                   .ToArray();
 
-                if (processes != null) processInfoAggregator.InitProcesses(processes);
+                processInfoAggregator.InitProcesses(processes);
             }
 
             if (options.Value.Modules != null)
@@ -62,15 +63,60 @@ internal abstract class ProcessExplorerServer
                 await processInfoAggregator.SubsystemController.InitializeSubsystems(subsystems);
             }
 
-            if(options.Value.MainProcessId != null)
+            if (options.Value.MainProcessId != null)
+            {
                 processInfoAggregator.MainProcessId = (int)options.Value.MainProcessId;
+            }
 
-            if (options.Value.EnableProcessExplorer)
+            if (options.Value.EnableWatchingProcesses)
+            {
                 processInfoAggregator.EnableWatchingSavedProcesses();
+            }
         }
         catch (Exception exception)
         {
             _logger.ProcessExplorerSetupError(exception, exception);
         }
+    }
+
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        if (cancellationToken == CancellationToken.None) _logger.GrpcCancellationTokenWarning();
+
+        Task.Run(StartAsyncCore, _stopTokenSource.Token);
+        Task.Run(() => _processInfoAggregator.RunSubsystemStateQueue(_stopTokenSource.Token), _stopTokenSource.Token);
+
+        return _startTaskSource.Task;
+    }
+
+    private void StartAsyncCore()
+    {
+        _logger.GrpcServerStartedDebug();
+        _startTaskSource.SetResult();
+
+        try
+        {
+            SetupProcessExplorer(_options, _processInfoAggregator);
+        }
+        catch (Exception)
+        {
+            _logger.GrpcServerStoppedDebug();
+        }
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            _stopTaskSource.SetResult();
+            _stopTokenSource.Cancel();
+            _logger.GrpcServerStoppedDebug();
+        }
+        catch (InvalidOperationException exception)
+        {
+            _logger.GrpcServerStopAsyncError(exception, exception);
+        }
+
+        return Task.CompletedTask;
     }
 }

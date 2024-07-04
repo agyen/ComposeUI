@@ -1,23 +1,40 @@
-﻿using MorganStanley.ComposeUI.ProcessExplorer.GrpcWebServer.DependencyInjection;
+﻿// Morgan Stanley makes this available to you under the Apache License,
+// Version 2.0 (the "License"). You may obtain a copy of the License at
+// 
+//      http://www.apache.org/licenses/LICENSE-2.0.
+// 
+// See the NOTICE file distributed with this work for additional information
+// regarding copyright ownership. Unless required by applicable law or agreed
+// to in writing, software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+// or implied. See the License for the specific language governing permissions
+// and limitations under the License.
+
 using MorganStanley.ComposeUI.ProcessExplorer.GrpcWebServer.Server.Abstractions;
-using MorganStanley.ComposeUI.ProcessExplorer.GrpcWebServer.Server.Infrastructure.Grpc;
 
-var builder = WebApplication.CreateBuilder(args);
+namespace MorganStanley.ComposeUI.ProcessExplorer.GrpcWebServer;
+public static class Program
+{
+    public static void Main(string[] args)
+    {
+        var builder = WebApplication.CreateBuilder(args);
+        builder.Services.AddProcessExplorerWindowsServerWithGrpc(processExplorer =>
+        {
+            processExplorer.UseGrpc(options =>
+            {
+                var section = builder.Configuration.GetSection("ProcessExplorer");
+                var config = section.Get<ProcessExplorerServerOptions>();
 
-// Additional configuration is required to successfully run gRPC on macOS.
-// For instructions on how to configure Kestrel and gRPC clients on macOS, visit https://go.microsoft.com/fwlink/?linkid=2099682
+                options.EnableWatchingProcesses = config.EnableWatchingProcesses;
+                options.MainProcessId = config.MainProcessId ?? Environment.ProcessId;
+                options.Processes = config.Processes;
+                options.Modules = config.Modules;
+            });
+        });
 
-// Add services to the container.
-builder.Services.AddGrpc();
-builder.Services.AddProcessExplorerWindowsServerWithGrpc(pe => pe.UseGrpc());
+        var app = builder.Build();
+        app.AddGrpcMessageService();
 
-var app = builder.Build();
-app.UseGrpcWeb();
-app.UseCors();
-// Configure the HTTP request pipeline.
-//app.MapGrpcService<GreeterService>().EnableGrpcWeb().RequireCors("AllowAll");
-app.MapGrpcService<ProcessExplorerMessageHandlerService>().EnableGrpcWeb().RequireCors("AllowAll");
-
-app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
-
-app.Run();
+        app.Run();
+    }
+}
