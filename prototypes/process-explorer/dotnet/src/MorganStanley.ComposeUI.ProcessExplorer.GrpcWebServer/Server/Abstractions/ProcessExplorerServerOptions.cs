@@ -18,11 +18,9 @@ namespace MorganStanley.ComposeUI.ProcessExplorer.GrpcWebServer.Server.Abstracti
 
 public class ProcessExplorerServerOptions : IOptions<ProcessExplorerServerOptions>
 {
-    public bool EnableProcessExplorer { get; set; }
+    public bool EnableWatchingProcesses { get; set; }
     public IEnumerable<KeyValuePair<Guid, Module>>? Modules { get; set; }
     public IEnumerable<ProcessInformation>? Processes { get; set; }
     public int? MainProcessId { get; set; }
-    public int? Port { get; set; }
-    public string? Host { get; set; }
     public ProcessExplorerServerOptions Value => this;
 }

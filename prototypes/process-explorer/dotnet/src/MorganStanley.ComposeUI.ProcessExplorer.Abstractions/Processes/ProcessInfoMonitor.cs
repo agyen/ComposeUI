@@ -48,7 +48,10 @@ public abstract class ProcessInfoMonitor : IProcessInfoMonitor
     {
         lock (_processIdsLocker)
         {
-            if (processId == 0) return;
+            if (processId == 0)
+            {
+                return;
+            }
 
             _processIds.Add(processId);
             _processIdsSubject.OnNext(new(processId, ProcessStatus.Running));
@@ -60,7 +63,10 @@ public abstract class ProcessInfoMonitor : IProcessInfoMonitor
         lock (_processIdsLocker)
         {
             var removedProcessId = _processIds.Remove(processId);
-            if (!removedProcessId) return;
+            if (!removedProcessId)
+            {
+                return;
+            }
 
             _processIdsSubject.OnNext(new(processId, ProcessStatus.Terminated));
             _logger.ProcessTerminatedInformation(processId);
@@ -77,7 +83,10 @@ public abstract class ProcessInfoMonitor : IProcessInfoMonitor
             {
                 try
                 {
-                    if (_processIds.Contains(id)) continue;
+                    if (_processIds.Contains(id))
+                    {
+                        continue;
+                    }
 
                     var process = Process.GetProcessById(id);
 
@@ -92,7 +101,9 @@ public abstract class ProcessInfoMonitor : IProcessInfoMonitor
             }
 
             if (mainProcessId != 0 && !_processIds.Contains(mainProcessId))
+            {
                 _processIds.Add(mainProcessId);
+            }
         }
     }
 
@@ -154,18 +165,33 @@ public abstract class ProcessInfoMonitor : IProcessInfoMonitor
     private bool IsComposeProcess(int processId)
     {
         //snapshot if the process has already exited
-        if (Process.GetProcessById(processId) == null) return false;
+        if (Process.GetProcessById(processId) == null)
+        {
+            return false;
+        }
 
-        if (ContainsId(processId)) return true;
+        if (ContainsId(processId))
+        {
+            return true;
+        }
 
         var process = Process.GetProcessById(processId);
-        if (process.Id == 0) return false;
+        if (process.Id == 0)
+        {
+            return false;
+        }
 
         var parentProcessId = GetParentId(processId, process.ProcessName);
 
-        if (parentProcessId == null || parentProcessId == 0) return false;
+        if (parentProcessId == null || parentProcessId == 0)
+        {
+            return false;
+        }
 
-        if (ContainsId((int)parentProcessId)) return true;
+        if (ContainsId((int)parentProcessId))
+        {
+            return true;
+        }
 
         return IsComposeProcess(Convert.ToInt32(parentProcessId));
     }
@@ -189,7 +215,7 @@ public abstract class ProcessInfoMonitor : IProcessInfoMonitor
         }
         catch (Exception exception)
         {
-            _logger.ProcessExpected(exception);
+            //_logger.ProcessExpected(exception);
             return false;
         }
     }

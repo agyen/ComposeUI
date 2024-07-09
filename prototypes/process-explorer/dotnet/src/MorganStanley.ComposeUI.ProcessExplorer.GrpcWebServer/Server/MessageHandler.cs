@@ -12,7 +12,6 @@
 
 using MorganStanley.ComposeUI.ProcessExplorer.GrpcWebServer.Extensions;
 using MorganStanley.ComposeUI.ProcessExplorer.GrpcWebServer.Logging;
-using Microsoft.Extensions.Logging;
 using MorganStanley.ComposeUI.ProcessExplorer.Abstractions;
 using ProcessExplorer.Abstractions.Infrastructure.Protos;
 

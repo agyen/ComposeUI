@@ -10,15 +10,19 @@
 // or implied. See the License for the specific language governing permissions
 // and limitations under the License.
 
+using MorganStanley.ComposeUI.ProcessExplorer.GrpcWebServer.Server.Infrastructure.Grpc;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
-public sealed class ProcessExplorerBuilder
+public static class WebApplicationExtensions
 {
-    internal IServiceCollection ServiceCollection { get; }
-
-    public ProcessExplorerBuilder(IServiceCollection serviceCollection)
+    public static WebApplication AddGrpcMessageService(this WebApplication webApplication)
     {
-        this.ServiceCollection = serviceCollection;
+        webApplication.UseGrpcWeb();
+        webApplication.UseCors();
+        webApplication.MapGrpcService<ProcessExplorerMessageHandlerService>().EnableGrpcWeb().RequireCors("AllowAll");
+        webApplication.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client. To learn how to create a client, visit: https://go.microsoft.com/fwlink/?linkid=2086909");
+
+        return webApplication;
     }
 }
