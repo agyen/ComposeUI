@@ -98,17 +98,14 @@ internal class Program
                 }
             });
 
+        var instances = new Dictionary<Guid, ModuleManifest>();
+
         foreach (var module in manifest)
         {
             var instanceId = Guid.NewGuid();
-
+            loader.RequestStartProcess(new LaunchRequest { name = module.Value.Name, instanceId = instanceId });
+            instances.Add(instanceId, module.Value);
             moduleCounter.AddCount();
-        }
-
-        foreach (var module in manifest)
-        {
-            manifest.TryGetValue(module.Key, out var instance);
-            loader.RequestStartProcess(new LaunchRequest { name = module.Value.Name, instanceId = new Guid(module.Key) });
         }
 
         logger.LogInformation("ComposeUI application running, press Ctrl+C to exit");
@@ -119,9 +116,9 @@ internal class Program
 
         manifest.Reverse();
 
-        foreach (var item in manifest)
+        foreach (var item in instances)
         {
-            loader.RequestStopProcess(new StopRequest { instanceId = new Guid(item.Key) });
+            loader.RequestStopProcess(new StopRequest { instanceId = item.Key });
         }
 
         await moduleCounter.WaitAsync();
