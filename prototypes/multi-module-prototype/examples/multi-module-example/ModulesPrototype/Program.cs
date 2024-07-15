@@ -114,7 +114,7 @@ internal class Program
 
         logger.LogInformation("Exiting subprocesses");
 
-        manifest.Reverse();
+        instances.Reverse();
 
         foreach (var item in instances)
         {

@@ -38,12 +38,6 @@ public static class ProcessExplorerBuilderExtensions
                     .WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding");
         }));
 
-        builder.ServiceCollection.Configure<ProcessExplorerServerOptions>(op =>
-        {
-            op.MainProcessId = Process.GetCurrentProcess().Id;
-            op.EnableWatchingProcesses = true;
-        });
-
         builder.ServiceCollection.AddProcessExplorerAggregator();
         builder.ServiceCollection.AddProcessMonitorWindows();
         builder.ServiceCollection.AddSubsystemController();
